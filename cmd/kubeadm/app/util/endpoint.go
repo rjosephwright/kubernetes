@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net"
 	"strconv"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/validation"
 	kubeadmapi "k8s.io/kubernetes/cmd/kubeadm/app/apis/kubeadm"
@@ -36,16 +37,26 @@ func GetMasterEndpoint(cfg *kubeadmapi.MasterConfiguration) (string, error) {
 	return fmt.Sprintf("https://%s", hostPort), nil
 }
 
-// GetMasterHostPort returns a properly formatted Master IP/port pair or error
-// if the IP address can not be parsed or port is outside the valid TCP range.
+// GetMasterHostPort returns a properly formatted Master hostname or IP and port pair, or error
+// if the hostname or IP address can not be parsed or port is outside the valid TCP range.
 func GetMasterHostPort(cfg *kubeadmapi.MasterConfiguration) (string, error) {
 	var masterIP string
+	var portStr string
 	if len(cfg.API.ControlPlaneEndpoint) > 0 {
-		errs := validation.IsDNS1123Subdomain(cfg.API.ControlPlaneEndpoint)
+		parts := strings.FieldsFunc(cfg.API.ControlPlaneEndpoint, func(c rune) bool {
+			return c == ':'
+		})
+		if len(parts) > 2 {
+			return "", fmt.Errorf("invalid value given for `ControlPlaneEndpoint`")
+		}
+		masterIP = parts[0]
+		errs := validation.IsDNS1123Subdomain(masterIP)
 		if len(errs) > 0 {
 			return "", fmt.Errorf("error parsing `ControlPlaneEndpoint` to valid dns subdomain with errors: %s", errs)
 		}
-		masterIP = cfg.API.ControlPlaneEndpoint
+		if len(parts) == 2 {
+			portStr = parts[1]
+		}
 	} else {
 		ip := net.ParseIP(cfg.API.AdvertiseAddress)
 		if ip == nil {
@@ -54,10 +65,21 @@ func GetMasterHostPort(cfg *kubeadmapi.MasterConfiguration) (string, error) {
 		masterIP = ip.String()
 	}
 
-	if cfg.API.BindPort < 0 || cfg.API.BindPort > 65535 {
+	var port int32
+	if len(portStr) > 0 {
+		portInt, err := strconv.Atoi(portStr)
+		if err != nil {
+			return "", fmt.Errorf("error parsing `ControlPlaneEndpoint` port: %s", err.Error())
+		}
+		port = int32(portInt)
+	} else {
+		port = cfg.API.BindPort
+	}
+
+	if port < 0 || port > 65535 {
 		return "", fmt.Errorf("api server port must be between 0 and 65535")
 	}
 
-	hostPort := net.JoinHostPort(masterIP, strconv.Itoa(int(cfg.API.BindPort)))
+	hostPort := net.JoinHostPort(masterIP, strconv.Itoa(int(port)))
 	return hostPort, nil
 }
