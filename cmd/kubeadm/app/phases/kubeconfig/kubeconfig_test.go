@@ -66,22 +66,22 @@ func TestGetKubeConfigSpecs(t *testing.T) {
 
 	// Creates Master Configurations pointing to the pkidir folder
 	cfgs := []*kubeadmapi.MasterConfiguration{
-		&kubeadmapi.MasterConfiguration{
+		{
 			API:             kubeadmapi.API{AdvertiseAddress: "1.2.3.4", BindPort: 1234},
 			CertificatesDir: pkidir,
 			NodeName:        "valid-node-name",
 		},
-		&kubeadmapi.MasterConfiguration{
+		{
 			API:             kubeadmapi.API{ControlPlaneEndpoint: "api.k8s.io", BindPort: 1234},
 			CertificatesDir: pkidir,
 			NodeName:        "valid-node-name",
 		},
-		&kubeadmapi.MasterConfiguration{
+		{
 			API:             kubeadmapi.API{ControlPlaneEndpoint: "api.k8s.io:4321", BindPort: 1234},
 			CertificatesDir: pkidir,
 			NodeName:        "valid-node-name",
 		},
-		&kubeadmapi.MasterConfiguration{
+		{
 			API:             kubeadmapi.API{AdvertiseAddress: "1.2.3.4", ControlPlaneEndpoint: "api.k8s.io:4321", BindPort: 1234},
 			CertificatesDir: pkidir,
 			NodeName:        "valid-node-name",
