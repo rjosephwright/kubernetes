@@ -47,7 +47,7 @@ func GetMasterHostPort(cfg *kubeadmapi.MasterConfiguration) (string, error) {
 			return c == ':'
 		})
 		if len(parts) > 2 {
-			return "", fmt.Errorf("invalid value given for `ControlPlaneEndpoint`")
+			return "", fmt.Errorf("invalid value `%s` given for `ControlPlaneEndpoint`", cfg.API.ControlPlaneEndpoint)
 		}
 		masterIP = parts[0]
 		errs := validation.IsDNS1123Subdomain(masterIP)
@@ -69,7 +69,7 @@ func GetMasterHostPort(cfg *kubeadmapi.MasterConfiguration) (string, error) {
 	if len(portStr) > 0 {
 		portInt, err := strconv.Atoi(portStr)
 		if err != nil {
-			return "", fmt.Errorf("error parsing `ControlPlaneEndpoint` port: %s", err.Error())
+			return "", fmt.Errorf("error parsing `ControlPlaneEndpoint` port value `%s`: %s", portStr, err.Error())
 		}
 		port = int32(portInt)
 	} else {
@@ -77,7 +77,7 @@ func GetMasterHostPort(cfg *kubeadmapi.MasterConfiguration) (string, error) {
 	}
 
 	if port < 0 || port > 65535 {
-		return "", fmt.Errorf("api server port must be between 0 and 65535")
+		return "", fmt.Errorf("api server port must be between 0 and 65535, %d was given", port)
 	}
 
 	hostPort := net.JoinHostPort(masterIP, strconv.Itoa(int(port)))
